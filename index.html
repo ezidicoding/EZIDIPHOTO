@@ -1,0 +1,1443 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>تطبيق الايزيدي لتعديل الصور المتطور</title>
+  
+  <!-- مكتبة Fabric.js للتفاعل الرسومي فائق الدقة -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
+  
+  <!-- خط تجوال العصري -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg-dark: #08090d;
+      --panel-glass: rgba(18, 20, 30, 0.95);
+      --panel-border: rgba(255, 255, 255, 0.12);
+      --accent: #4f46e5;
+      --accent-glow: rgba(79, 70, 229, 0.45);
+      --text: #ffffff;
+      --text-dim: #94a3b8;
+      --danger: #ef4444;
+      --success: #10b981;
+      --radius: 14px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Tajawal', -apple-system, BlinkMacSystemFont, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text);
+      height: 100vh;
+      height: 100dvh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      width: 100%;
+    }
+
+    /* الشريط العلوي */
+    header {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: calc(56px + env(safe-area-inset-top, 0px));
+      padding-top: env(safe-area-inset-top, 0px);
+      padding-left: 0.8rem;
+      padding-right: 0.8rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 30;
+      background: linear-gradient(to bottom, rgba(0,0,0,0.85), transparent);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+
+    .brand-section {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-weight: 800;
+      font-size: 0.95rem;
+    }
+
+    .brand svg {
+      width: 22px;
+      height: 22px;
+      stroke: var(--accent);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .btn-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid var(--panel-border);
+      color: var(--text);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-icon:disabled {
+      opacity: 0.3;
+      pointer-events: none;
+    }
+
+    .btn-icon:active {
+      transform: scale(0.9);
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    .btn-icon svg {
+      width: 18px;
+      height: 18px;
+      stroke-width: 2;
+    }
+
+    .btn-icon.btn-danger {
+      color: var(--danger);
+      background: rgba(239, 68, 68, 0.18);
+    }
+
+    .btn-save {
+      background: var(--accent);
+      border: 1px solid var(--accent);
+      color: white;
+      padding: 0 0.9rem;
+      border-radius: 20px;
+      height: 36px;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-weight: 700;
+      font-size: 0.8rem;
+      box-shadow: 0 4px 15px var(--accent-glow);
+      cursor: pointer;
+    }
+
+    .btn-save:active {
+      transform: scale(0.93);
+    }
+
+    .btn-save svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    /* مساحة الكانفاس الحرة */
+    .editor-viewport {
+      flex: 1;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      touch-action: none;
+      background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+      background-size: 20px 20px;
+    }
+
+    .canvas-wrapper {
+      box-shadow: 0 20px 50px rgba(0,0,0,0.85);
+      border-radius: 8px;
+      overflow: hidden;
+      display: flex;
+    }
+
+    /* شاشة الرفع الابتدائية */
+    .start-screen {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg-dark);
+      z-index: 10;
+      padding: 1.5rem;
+    }
+
+    .upload-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 2px dashed rgba(255, 255, 255, 0.15);
+      border-radius: 24px;
+      padding: 3rem 1.5rem;
+      text-align: center;
+      width: 100%;
+      max-width: 320px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .upload-card:active {
+      border-color: var(--accent);
+      transform: scale(0.98);
+    }
+
+    .upload-card svg {
+      width: 50px;
+      height: 50px;
+      stroke: var(--accent);
+      margin-bottom: 0.8rem;
+    }
+
+    /* الدرج المنبثق للأدوات */
+    .tools-drawer {
+      position: absolute;
+      bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+      left: 12px;
+      right: 12px;
+      background: var(--panel-glass);
+      backdrop-filter: blur(25px);
+      -webkit-backdrop-filter: blur(25px);
+      border: 1px solid var(--panel-border);
+      border-radius: 20px;
+      padding: 1rem;
+      box-shadow: 0 15px 40px rgba(0, 0, 0, 0.7);
+      transform: translateY(150%);
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 25;
+      max-height: 290px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .tools-drawer.open {
+      transform: translateY(0);
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .drawer-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.8rem;
+      padding-bottom: 0.4rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .drawer-title {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--text-dim);
+    }
+
+    .drawer-close {
+      background: none;
+      border: none;
+      color: var(--text-dim);
+      cursor: pointer;
+      display: flex;
+    }
+
+    .drawer-body {
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    /* شريط الأدوات السفلي الثابت (Dock) */
+    .bottom-dock {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: calc(65px + env(safe-area-inset-bottom, 0px));
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+      background: rgba(10, 11, 16, 0.96);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-top: 1px solid var(--panel-border);
+      display: flex;
+      align-items: center;
+      overflow-x: auto;
+      scrollbar-width: none;
+      padding: 0 0.5rem;
+      gap: 0.2rem;
+      z-index: 30;
+    }
+    .bottom-dock::-webkit-scrollbar { display: none; }
+
+    .dock-btn {
+      background: none;
+      border: none;
+      color: var(--text-dim);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.25rem;
+      font-size: 0.72rem;
+      font-weight: 500;
+      cursor: pointer;
+      padding: 0.35rem 0.65rem;
+      border-radius: 12px;
+      flex-shrink: 0;
+      min-width: 62px;
+      transition: all 0.2s;
+    }
+
+    .dock-btn svg {
+      width: 22px;
+      height: 22px;
+      stroke-width: 2;
+      stroke: var(--text-dim);
+    }
+
+    .dock-btn.active {
+      color: var(--accent);
+      background: rgba(79, 70, 229, 0.15);
+    }
+
+    .dock-btn.active svg {
+      stroke: var(--accent);
+    }
+
+    .slider-row {
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .slider-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      color: var(--text-dim);
+    }
+
+    .range-input {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.12);
+      border-radius: 4px;
+      outline: none;
+      accent-color: var(--accent);
+    }
+
+    .range-input::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #ffffff;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.6);
+      cursor: pointer;
+    }
+
+    .sharpen-levels {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.4rem;
+    }
+
+    .btn-level {
+      padding: 0.5rem 0.2rem;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--panel-border);
+      color: var(--text);
+      font-size: 0.75rem;
+      border-radius: 8px;
+      cursor: pointer;
+      text-align: center;
+    }
+
+    .btn-level.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      font-weight: 700;
+    }
+
+    .grid-tools {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.5rem;
+    }
+
+    .btn-tool {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      padding: 0.6rem 0.2rem;
+      font-size: 0.8rem;
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.3rem;
+      cursor: pointer;
+      text-align: center;
+    }
+
+    .btn-tool:active {
+      background: var(--accent);
+    }
+
+    .btn-tool svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    .stickers-container {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 0.5rem;
+    }
+
+    .sticker-png-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      padding: 0.4rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      height: 52px;
+      transition: transform 0.15s;
+    }
+
+    .sticker-png-btn:active {
+      transform: scale(0.92);
+      border-color: var(--accent);
+    }
+
+    .sticker-png-btn img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+    }
+
+    /* نافذة الإعلان ورسالة الشكر المخصصة */
+    .modal-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      z-index: 50;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      animation: fadeIn 0.25s ease-out;
+    }
+
+    .thank-you-card {
+      background: var(--panel-glass);
+      border: 1px solid var(--panel-border);
+      border-radius: 24px;
+      padding: 2.2rem 1.6rem;
+      text-align: center;
+      max-width: 340px;
+      width: 100%;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.2rem;
+    }
+
+    .status-badge {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--success);
+    }
+
+    .spinner {
+      width: 36px;
+      height: 36px;
+      border: 4px solid rgba(255, 255, 255, 0.2);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .app-title-banner {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: #fff;
+      line-height: 1.55;
+    }
+
+    .app-subtitle-banner {
+      font-size: 0.85rem;
+      color: var(--text-dim);
+      margin-top: 0.3rem;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.96); }
+      to { opacity: 1; transform: scale(1); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- نافذة الإعلان ورسالة الشكر عند الحفظ -->
+  <div class="modal-backdrop" id="thankYouModal">
+    <div class="thank-you-card">
+      <div class="status-badge" id="modalBadge">
+        <div class="spinner" id="modalSpinner"></div>
+        <svg id="modalSuccessIcon" style="display:none; width:34px; height:34px;" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+        </svg>
+      </div>
+      <div>
+        <h3 class="app-title-banner">شكرا لاستخدام تطبيق الايزيدي لتعديل صور المتطور</h3>
+        <p class="app-subtitle-banner" id="modalSubtitle">جاري حفظ ومعالجة الصورة بدقتها الأصلية...</p>
+      </div>
+      <button class="btn-save" id="btnCloseModal" style="display:none; width:100%; justify-content:center; height:42px; font-size:0.9rem;">
+        حسناً، متابعة
+      </button>
+    </div>
+  </div>
+
+  <!-- الشريط العلوي -->
+  <header>
+    <div class="brand-section">
+      <!-- زر الرجوع للبداية واختيار صورة أخرى -->
+      <button class="btn-icon" id="btnCloseImage" title="إغلاق الصورة واختيار غيرها" style="display:none; color:#f87171;">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+        </svg>
+      </button>
+
+      <div class="brand">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+        </svg>
+        <span>EZIDIPHOTO</span>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <!-- تراجع -->
+      <button class="btn-icon" id="btnUndo" title="تراجع" disabled>
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h10a5 5 0 015 5v2M3 10l6-6m-6 6l6 6"/>
+        </svg>
+      </button>
+
+      <!-- تقدم -->
+      <button class="btn-icon" id="btnRedo" title="تقدم" disabled>
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M21 10H11a5 5 0 00-5 5v2m15-7l-6-6m6 6l-6 6"/>
+        </svg>
+      </button>
+
+      <!-- حذف العنصر المحدد -->
+      <button class="btn-icon btn-danger" id="btnDeleteSelected" title="حذف العنصر">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+        </svg>
+      </button>
+
+      <!-- حفظ بالدقة الأصلية -->
+      <button class="btn-save" id="btnSaveHQ">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+        </svg>
+        <span></span>
+      </button>
+    </div>
+  </header>
+
+  <!-- مساحة الكانفاس الحرة -->
+  <main class="editor-viewport" id="viewport">
+    
+    <!-- شاشة الرفع الابتدائية -->
+    <div class="start-screen" id="startScreen">
+      <label class="upload-card">
+        <input type="file" id="primaryImageInput" accept="image/*" style="display:none;" />
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+        </svg>
+        <h3 style="margin-bottom:0.4rem; font-size:1.15rem;">اChoose an image to begin editing</h3>
+        <p style="font-size:0.8rem; color:var(--text-dim);">Click here or drag your image directly</p>
+      </label>
+    </div>
+
+    <!-- كانفاس العرض -->
+    <div class="canvas-wrapper">
+      <canvas id="fabricCanvas"></canvas>
+    </div>
+
+  </main>
+
+  <!-- الدرج العائم لميزات التعديل -->
+  <div class="tools-drawer" id="toolsDrawer">
+    <div class="drawer-header">
+      <span class="drawer-title" id="drawerTitle">لوحة التعديل</span>
+      <button class="drawer-close" id="drawerCloseBtn">
+        <svg style="width:20px; height:20px;" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="drawer-body">
+      
+      <!-- 1. محتوى: الضبط والإضاءة -->
+      <div class="drawer-panel" id="panel-adjust" style="display:none;">
+        <div class="slider-row">
+          <div class="slider-label"><span>السطوع</span><span id="txtBrightness">0</span></div>
+          <input type="range" class="range-input" id="adjBrightness" min="-1" max="1" step="0.02" value="0">
+        </div>
+        <div class="slider-row">
+          <div class="slider-label"><span>التباين</span><span id="txtContrast">0</span></div>
+          <input type="range" class="range-input" id="adjContrast" min="-1" max="1" step="0.02" value="0">
+        </div>
+        <div class="slider-row">
+          <div class="slider-label"><span>التشبع</span><span id="txtSaturation">0</span></div>
+          <input type="range" class="range-input" id="adjSaturation" min="-1" max="1" step="0.02" value="0">
+        </div>
+        <div class="slider-row">
+          <div class="slider-label"><span>التغبيش</span><span id="txtBlur">0</span></div>
+          <input type="range" class="range-input" id="adjBlur" min="0" max="1" step="0.02" value="0">
+        </div>
+      </div>
+
+      <!-- 2. محتوى: الفلاتر -->
+      <div class="drawer-panel" id="panel-filters" style="display:none;">
+        <div class="grid-tools">
+          <button class="btn-tool" onclick="setPresetFilter('original')">أصلي</button>
+          <button class="btn-tool" onclick="setPresetFilter('cinematic')">سينمائي</button>
+          <button class="btn-tool" onclick="setPresetFilter('bw')">أبيض/أسود</button>
+          <button class="btn-tool" onclick="setPresetFilter('sepia')">سيبيا دافئ</button>
+          <button class="btn-tool" onclick="setPresetFilter('vintage')">فينتاج</button>
+          <button class="btn-tool" onclick="setPresetFilter('cold')">ألوان باردة</button>
+        </div>
+      </div>
+
+      <!-- 3. محتوى: تحسين الحدة (3 درجات) -->
+      <div class="drawer-panel" id="panel-enhance" style="display:none;">
+        <p style="font-size:0.8rem; color:var(--text-dim); margin-bottom:0.6rem;">
+          زيادة وضوح التفاصيل والحدة بـ 3 مستويات:
+        </p>
+        <div class="sharpen-levels">
+          <button class="btn-level active" onclick="setSharpen(0)">إيقاف</button>
+          <button class="btn-level" onclick="setSharpen(1)">1 خفيف</button>
+          <button class="btn-level" onclick="setSharpen(2)">2 متوسط</button>
+          <button class="btn-level" onclick="setSharpen(3)">3 فائق</button>
+        </div>
+      </div>
+
+      <!-- 4. محتوى: إضافة صورة فوق صورة (PIP) مضمونة الحفظ -->
+      <div class="drawer-panel" id="panel-overlay" style="display:none;">
+        <p style="font-size:0.8rem; color:var(--text-dim); margin-bottom:0.7rem;">
+          إضافة صورة أو شعار وتثبيته فوق الصورة الأساسية مع ضمان ظهوره عند الحفظ:
+        </p>
+        <label class="btn-save" style="width:100%; justify-content:center; cursor:pointer; margin-bottom:0.8rem;">
+          <input type="file" id="overlayInput" accept="image/*" style="display:none;" />
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+          </svg>
+          <span>اختيار صورة لإضافتها الآن</span>
+        </label>
+        
+        <div class="slider-row">
+          <div class="slider-label"><span>شفافية الصورة المضافة (Opacity)</span><span id="txtOverlayOpacity">100%</span></div>
+          <input type="range" class="range-input" id="overlayOpacity" min="0.1" max="1" step="0.05" value="1">
+        </div>
+      </div>
+
+      <!-- 5. محتوى: النصوص -->
+      <div class="drawer-panel" id="panel-text" style="display:none;">
+        <button class="btn-save" id="btnCreateText" style="width:100%; justify-content:center; margin-bottom:0.7rem;">
+          + إضافة نص للكتابة
+        </button>
+        <div style="display:flex; align-items:center; gap:0.6rem;">
+          <input type="color" id="textColorPicker" value="#ffffff" style="width:42px; height:34px; border:none; border-radius:8px; cursor:pointer;">
+          <input type="range" class="range-input" id="textSizeSlider" min="20" max="120" value="40" style="flex:1;">
+        </div>
+      </div>
+
+      <!-- 6. محتوى: ملصقات PNG شفافة -->
+      <div class="drawer-panel" id="panel-stickers" style="display:none;">
+        <div style="margin-bottom:0.6rem; display:flex;">
+          <label class="btn-tool" style="flex:1; flex-direction:row; justify-content:center; padding:0.5rem;">
+            <input type="file" id="customStickerInput" accept="image/png,image/webp,image/svg+xml" style="display:none;" />
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+            </svg>
+            <span>رفع ملصق PNG شفاف من ألبومك</span>
+          </label>
+        </div>
+        <div class="stickers-container" id="stickersGrid"></div>
+      </div>
+
+      <!-- 7. محتوى: التدوير والقلب -->
+      <div class="drawer-panel" id="panel-transform" style="display:none;">
+        <div class="grid-tools">
+          <button class="btn-tool" id="btnRotate">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9"/>
+            </svg>
+            تدوير 90°
+          </button>
+          <button class="btn-tool" id="btnFlipH">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+            </svg>
+            قلب أفقي
+          </button>
+          <button class="btn-tool" id="btnFlipV">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M7 16V4m0 0L3 8m4-4l4 4m6 4v12m0 0l4-4m-4 4l-4-4"/>
+            </svg>
+            قلب رأسي
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- شريط الأدوات السفلي الشامل (كل المميزات في مكانها المخصص) -->
+  <nav class="bottom-dock">
+    <button class="dock-btn" data-panel="panel-adjust" data-title="الضبط والإضاءة">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
+      </svg>
+      <span>الضبط</span>
+    </button>
+
+    <button class="dock-btn" data-panel="panel-filters" data-title="الفلاتر الاحترافية">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
+      </svg>
+      <span>فلاتر</span>
+    </button>
+
+    <button class="dock-btn" data-panel="panel-enhance" data-title="تحسين الحدة (3 درجات)">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+      </svg>
+      <span>حدة</span>
+    </button>
+
+    <button class="dock-btn" data-panel="panel-overlay" data-title="إضافة صورة فوق صورة">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+      </svg>
+      <span>صورة+</span>
+    </button>
+
+    <button class="dock-btn" data-panel="panel-text" data-title="إضافة وتعديل النص">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M3 5h12M9 5v14m6-8h6m-3-4v8"/>
+      </svg>
+      <span>نصوص</span>
+    </button>
+
+    <button class="dock-btn" data-panel="panel-stickers" data-title="ملصقات PNG">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+      </svg>
+      <span>ملصقات</span>
+    </button>
+
+    <button class="dock-btn" data-panel="panel-transform" data-title="تدوير وتغيير الاتجاه">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582M20 20v-5h-.581M11 19l-7-7 7-7m2 14l7-7-7-7"/>
+      </svg>
+      <span>تدوير</span>
+    </button>
+  </nav>
+
+  <script>
+    fabric.enableGLFiltering = false;
+
+    const canvas = new fabric.Canvas('fabricCanvas', {
+      preserveObjectStacking: true,
+      selectionColor: 'rgba(79, 70, 229, 0.2)',
+      selectionBorderColor: '#4f46e5',
+      selectionLineWidth: 1.5
+    });
+
+    let originalImageSource = null;
+    let originalWidth = 0;
+    let originalHeight = 0;
+    let proxyElement = null;
+
+    let mainImage = null;
+    let currentSharpenLevel = 0;
+    let activePreset = 'original';
+
+    const sharpenMatrices = {
+      1: [ 0, -0.4, 0, -0.4, 2.6, -0.4, 0, -0.4, 0 ],
+      2: [ 0, -1, 0, -1, 5, -1, 0, -1, 0 ],
+      3: [ -1, -1, -1, -1, 9, -1, -1, -1, -1 ]
+    };
+
+    // -----------------------------------------------------------
+    // نظام التراجع والتقدم (Undo / Redo)
+    // -----------------------------------------------------------
+    let historyStack = [];
+    let historyPointer = -1;
+    let isHistoryLocked = false;
+
+    function pushState() {
+      if (isHistoryLocked || !mainImage) return;
+      if (historyPointer < historyStack.length - 1) {
+        historyStack = historyStack.slice(0, historyPointer + 1);
+      }
+      const snapshot = {
+        canvasJson: canvas.toJSON(['selectable', 'evented', 'isMainImage']),
+        brightness: bIn.value,
+        contrast: cIn.value,
+        saturation: sIn.value,
+        blur: blIn.value,
+        sharpen: currentSharpenLevel,
+        preset: activePreset,
+        angle: mainImage.angle,
+        flipX: mainImage.flipX,
+        flipY: mainImage.flipY
+      };
+      historyStack.push(JSON.stringify(snapshot));
+      historyPointer = historyStack.length - 1;
+      updateUndoRedoUI();
+    }
+
+    function updateUndoRedoUI() {
+      document.getElementById('btnUndo').disabled = historyPointer <= 0;
+      document.getElementById('btnRedo').disabled = historyPointer >= historyStack.length - 1;
+    }
+
+    function applyState(stateStr) {
+      if (!stateStr) return;
+      isHistoryLocked = true;
+      const state = JSON.parse(stateStr);
+
+      canvas.loadFromJSON(state.canvasJson, () => {
+        mainImage = canvas.getObjects().find(o => o.isMainImage);
+        if (mainImage) {
+          mainImage.set({ selectable: false, evented: false });
+        }
+        bIn.value = state.brightness;
+        cIn.value = state.contrast;
+        sIn.value = state.saturation;
+        blIn.value = state.blur;
+
+        document.getElementById('txtBrightness').textContent = state.brightness;
+        document.getElementById('txtContrast').textContent = state.contrast;
+        document.getElementById('txtSaturation').textContent = state.saturation;
+        document.getElementById('txtBlur').textContent = state.blur;
+
+        currentSharpenLevel = state.sharpen;
+        activePreset = state.preset;
+        updateSharpenButtonsUI();
+
+        applyAllFiltersToImage(mainImage);
+        canvas.renderAll();
+        isHistoryLocked = false;
+        updateUndoRedoUI();
+      });
+    }
+
+    document.getElementById('btnUndo').addEventListener('click', () => {
+      if (historyPointer > 0) {
+        historyPointer--;
+        applyState(historyStack[historyPointer]);
+      }
+    });
+
+    document.getElementById('btnRedo').addEventListener('click', () => {
+      if (historyPointer < historyStack.length - 1) {
+        historyPointer++;
+        applyState(historyStack[historyPointer]);
+      }
+    });
+
+    canvas.on('object:modified', () => pushState());
+    canvas.on('object:added', (e) => {
+      if (!isHistoryLocked && e.target && !e.target.isMainImage) pushState();
+    });
+    canvas.on('object:removed', () => {
+      if (!isHistoryLocked) pushState();
+    });
+
+    // -----------------------------------------------------------
+    // التحكم بالدرج العائم
+    // -----------------------------------------------------------
+    const toolsDrawer = document.getElementById('toolsDrawer');
+    const drawerTitle = document.getElementById('drawerTitle');
+    const dockButtons = document.querySelectorAll('.dock-btn');
+    let currentActivePanel = null;
+
+    function toggleDrawer(panelId, title) {
+      if (currentActivePanel === panelId && toolsDrawer.classList.contains('open')) {
+        closeDrawer();
+      } else {
+        openDrawer(panelId, title);
+      }
+    }
+
+    function openDrawer(panelId, title) {
+      document.querySelectorAll('.drawer-panel').forEach(p => p.style.display = 'none');
+      dockButtons.forEach(b => b.classList.remove('active'));
+
+      const targetPanel = document.getElementById(panelId);
+      if (targetPanel) targetPanel.style.display = 'block';
+
+      const targetBtn = Array.from(dockButtons).find(b => b.dataset.panel === panelId);
+      if (targetBtn) targetBtn.classList.add('active');
+
+      drawerTitle.textContent = title;
+      toolsDrawer.classList.add('open');
+      currentActivePanel = panelId;
+    }
+
+    function closeDrawer() {
+      toolsDrawer.classList.remove('open');
+      dockButtons.forEach(b => b.classList.remove('active'));
+      currentActivePanel = null;
+    }
+
+    dockButtons.forEach(btn => {
+      btn.addEventListener('click', () => toggleDrawer(btn.dataset.panel, btn.dataset.title));
+    });
+
+    document.getElementById('drawerCloseBtn').addEventListener('click', closeDrawer);
+
+    // -----------------------------------------------------------
+    // رفع الصورة الأساسية بنسخة سريعة
+    // -----------------------------------------------------------
+    const btnCloseImage = document.getElementById('btnCloseImage');
+
+    function loadPrimaryImage(file) {
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const fullImg = new Image();
+        fullImg.onload = function() {
+          originalImageSource = fullImg;
+          originalWidth = fullImg.naturalWidth || fullImg.width;
+          originalHeight = fullImg.naturalHeight || fullImg.height;
+
+          // إنشاء نسخة معاينة سريعة
+          const maxPreviewDim = 1200;
+          let pW = originalWidth;
+          let pH = originalHeight;
+          if (Math.max(pW, pH) > maxPreviewDim) {
+            const ratio = maxPreviewDim / Math.max(pW, pH);
+            pW = Math.round(pW * ratio);
+            pH = Math.round(pH * ratio);
+          }
+
+          const offscreenCanvas = document.createElement('canvas');
+          offscreenCanvas.width = pW;
+          offscreenCanvas.height = pH;
+          const ctx = offscreenCanvas.getContext('2d');
+          ctx.drawImage(fullImg, 0, 0, pW, pH);
+
+          proxyElement = new Image();
+          proxyElement.onload = function() {
+            fabric.Image.fromURL(proxyElement.src, function(img) {
+              const viewport = document.getElementById('viewport');
+              const padding = 20;
+              const maxW = viewport.clientWidth - padding;
+              const maxH = viewport.clientHeight - padding - 75;
+
+              const displayScale = Math.min(maxW / img.width, maxH / img.height, 1);
+
+              canvas.setWidth(img.width * displayScale);
+              canvas.setHeight(img.height * displayScale);
+
+              img.set({
+                scaleX: displayScale,
+                scaleY: displayScale,
+                originX: 'center',
+                originY: 'center',
+                left: canvas.width / 2,
+                top: canvas.height / 2,
+                selectable: false,
+                evented: false
+              });
+              img.isMainImage = true;
+
+              canvas.clear();
+              mainImage = img;
+              canvas.add(img);
+              canvas.renderAll();
+
+              document.getElementById('startScreen').style.display = 'none';
+              btnCloseImage.style.display = 'inline-flex';
+
+              historyStack = [];
+              historyPointer = -1;
+              pushState();
+            });
+          };
+          proxyElement.src = offscreenCanvas.toDataURL('image/jpeg', 0.92);
+        };
+        fullImg.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    document.getElementById('primaryImageInput').addEventListener('change', (e) => loadPrimaryImage(e.target.files[0]));
+
+    // زر الرجوع واختيار صورة أخرى
+    btnCloseImage.addEventListener('click', () => {
+      if (!confirm('هل تريد إلغاء التعديل والرجوع لاختيار صورة جديدة؟')) return;
+
+      canvas.clear();
+      mainImage = null;
+      originalImageSource = null;
+      proxyElement = null;
+      originalWidth = 0;
+      originalHeight = 0;
+
+      bIn.value = 0; cIn.value = 0; sIn.value = 0; blIn.value = 0;
+      document.getElementById('txtBrightness').textContent = '0';
+      document.getElementById('txtContrast').textContent = '0';
+      document.getElementById('txtSaturation').textContent = '0';
+      document.getElementById('txtBlur').textContent = '0';
+
+      currentSharpenLevel = 0;
+      updateSharpenButtonsUI();
+      activePreset = 'original';
+
+      historyStack = [];
+      historyPointer = -1;
+      updateUndoRedoUI();
+      closeDrawer();
+
+      document.getElementById('primaryImageInput').value = '';
+      document.getElementById('startScreen').style.display = 'flex';
+      btnCloseImage.style.display = 'none';
+    });
+
+    // -----------------------------------------------------------
+    // ميزة: إضافة صورة فوق صورة (PIP) وحفظها بنسبة 100%
+    // -----------------------------------------------------------
+    document.getElementById('overlayInput').addEventListener('change', function(e) {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(ev) {
+        const dataURL = ev.target.result;
+        fabric.Image.fromURL(dataURL, function(overlayImg) {
+          if (!overlayImg) {
+            alert('تعذر تحميل الصورة، يرجى المحاولة بصورة أخرى');
+            return;
+          }
+          const targetSize = Math.min(canvas.width, canvas.height) * 0.42;
+          const scale = targetSize / Math.max(overlayImg.width, overlayImg.height);
+
+          overlayImg.set({
+            scaleX: scale,
+            scaleY: scale,
+            left: canvas.width / 2,
+            top: canvas.height / 2,
+            originX: 'center',
+            originY: 'center',
+            cornerColor: '#4f46e5',
+            cornerStyle: 'circle',
+            cornerSize: 15,
+            transparentCorners: false,
+            borderColor: '#6366f1',
+            borderScaleFactor: 2
+          });
+
+          canvas.add(overlayImg);
+          canvas.setActiveObject(overlayImg);
+          canvas.renderAll();
+          pushState();
+          closeDrawer(); // إغلاق الدرج تلقائياً للتحكم بالصورة المضافة بحرية
+        });
+      };
+      reader.readAsDataURL(file);
+      this.value = '';
+    });
+
+    // التحكم بالشفافية
+    const overlayOpacityInput = document.getElementById('overlayOpacity');
+    overlayOpacityInput.addEventListener('input', (e) => {
+      const active = canvas.getActiveObject();
+      if (active && !active.isMainImage) {
+        active.set('opacity', parseFloat(e.target.value));
+        canvas.renderAll();
+      }
+      document.getElementById('txtOverlayOpacity').textContent = Math.round(e.target.value * 100) + '%';
+    });
+    overlayOpacityInput.addEventListener('change', () => pushState());
+
+    // -----------------------------------------------------------
+    // الفلاتر والحدة
+    // -----------------------------------------------------------
+    const bIn = document.getElementById('adjBrightness');
+    const cIn = document.getElementById('adjContrast');
+    const sIn = document.getElementById('adjSaturation');
+    const blIn = document.getElementById('adjBlur');
+
+    function applyAllFiltersToImage(targetImg) {
+      if (!targetImg) return;
+      targetImg.filters = [];
+
+      if (currentSharpenLevel > 0 && sharpenMatrices[currentSharpenLevel]) {
+        targetImg.filters.push(new fabric.Image.filters.Convolute({
+          matrix: sharpenMatrices[currentSharpenLevel]
+        }));
+      }
+      if (parseFloat(bIn.value) !== 0) {
+        targetImg.filters.push(new fabric.Image.filters.Brightness({ brightness: parseFloat(bIn.value) }));
+      }
+      if (parseFloat(cIn.value) !== 0) {
+        targetImg.filters.push(new fabric.Image.filters.Contrast({ contrast: parseFloat(cIn.value) }));
+      }
+      if (parseFloat(sIn.value) !== 0) {
+        targetImg.filters.push(new fabric.Image.filters.Saturation({ saturation: parseFloat(sIn.value) }));
+      }
+      if (parseFloat(blIn.value) > 0) {
+        targetImg.filters.push(new fabric.Image.filters.Blur({ blur: parseFloat(blIn.value) }));
+      }
+
+      if (activePreset === 'cinematic') {
+        targetImg.filters.push(new fabric.Image.filters.Contrast({ contrast: 0.18 }));
+        targetImg.filters.push(new fabric.Image.filters.Saturation({ saturation: 0.15 }));
+      } else if (activePreset === 'bw') {
+        targetImg.filters.push(new fabric.Image.filters.Grayscale());
+      } else if (activePreset === 'sepia') {
+        targetImg.filters.push(new fabric.Image.filters.Sepia());
+      } else if (activePreset === 'vintage') {
+        targetImg.filters.push(new fabric.Image.filters.Sepia());
+        targetImg.filters.push(new fabric.Image.filters.Contrast({ contrast: 0.15 }));
+      } else if (activePreset === 'cold') {
+        targetImg.filters.push(new fabric.Image.filters.HueRotation({ rotation: 0.15 }));
+      }
+
+      targetImg.applyFilters();
+    }
+
+    function refreshFiltersLive() {
+      if (!mainImage) return;
+      applyAllFiltersToImage(mainImage);
+      canvas.renderAll();
+    }
+
+    [bIn, cIn, sIn, blIn].forEach(input => {
+      input.addEventListener('input', (e) => {
+        document.getElementById('txt' + e.target.id.replace('adj', '')).textContent = e.target.value;
+        refreshFiltersLive();
+      });
+      input.addEventListener('change', () => pushState());
+    });
+
+    function setSharpen(level) {
+      currentSharpenLevel = level;
+      updateSharpenButtonsUI();
+      refreshFiltersLive();
+      pushState();
+    }
+
+    function updateSharpenButtonsUI() {
+      const btns = document.querySelectorAll('.sharpen-levels .btn-level');
+      btns.forEach((b, idx) => {
+        b.classList.toggle('active', idx === currentSharpenLevel);
+      });
+    }
+
+    function setPresetFilter(mode) {
+      activePreset = mode;
+      refreshFiltersLive();
+      pushState();
+    }
+
+    // -----------------------------------------------------------
+    // النصوص والملصقات الشفافة الطبيعية
+    // -----------------------------------------------------------
+    document.getElementById('btnCreateText').addEventListener('click', () => {
+      const text = new fabric.IText('نص جديد', {
+        left: canvas.width / 2,
+        top: canvas.height / 2,
+        originX: 'center',
+        originY: 'center',
+        fontFamily: 'Tajawal',
+        fill: document.getElementById('textColorPicker').value,
+        fontSize: parseInt(document.getElementById('textSizeSlider').value),
+        cornerColor: '#4f46e5',
+        cornerStyle: 'circle',
+        cornerSize: 14,
+        transparentCorners: false
+      });
+      canvas.add(text);
+      canvas.setActiveObject(text);
+      canvas.renderAll();
+      pushState();
+      closeDrawer();
+    });
+
+    document.getElementById('textColorPicker').addEventListener('input', (e) => {
+      const active = canvas.getActiveObject();
+      if (active && active.type === 'i-text') {
+        active.set('fill', e.target.value);
+        canvas.renderAll();
+      }
+    });
+    document.getElementById('textColorPicker').addEventListener('change', () => pushState());
+
+    document.getElementById('textSizeSlider').addEventListener('input', (e) => {
+      const active = canvas.getActiveObject();
+      if (active && active.type === 'i-text') {
+        active.set('fontSize', parseInt(e.target.value));
+        canvas.renderAll();
+      }
+    });
+    document.getElementById('textSizeSlider').addEventListener('change', () => pushState());
+
+    // ملصقات شفافة طبيعية بتصميم نقي
+    const pngStickers = [
+      { name: 'Glasses', svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 60"><path d="M12,14 Q30,12 42,16 Q45,26 42,38 Q25,45 14,36 Z" fill="#111" stroke="#222" stroke-width="2"/><path d="M58,16 Q70,12 88,14 Q86,36 75,38 Q62,45 58,38 Z" fill="#111" stroke="#222" stroke-width="2"/><path d="M42,20 Q50,15 58,20" fill="none" stroke="#222" stroke-width="4"/><ellipse cx="26" cy="22" rx="8" ry="3" fill="rgba(255,255,255,0.25)" transform="rotate(-15 26 22)"/><ellipse cx="74" cy="22" rx="8" ry="3" fill="rgba(255,255,255,0.25)" transform="rotate(-15 74 22)"/></svg>` },
+      { name: 'Crown', svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><polygon points="12,78 88,78 84,32 64,54 50,22 36,54 16,32" fill="#F59E0B" stroke="#B45309" stroke-width="3"/><circle cx="50" cy="22" r="5" fill="#EF4444"/><circle cx="16" cy="32" r="4" fill="#3B82F6"/><circle cx="84" cy="32" r="4" fill="#3B82F6"/><rect x="18" y="70" width="64" height="6" fill="#FBBF24" rx="3"/></svg>` },
+      { name: 'Heart', svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path d="M50,88 C50,88 10,55 10,30 C10,15 22,8 35,8 C43,8 48,13 50,18 C52,13 57,8 65,8 C78,8 90,15 90,30 C90,55 50,88 50,88 Z" fill="#EF4444"/><ellipse cx="32" cy="24" rx="8" ry="4" fill="rgba(255,255,255,0.4)" transform="rotate(-30 32 24)"/></svg>` },
+      { name: 'Fire', svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path d="M50,4 C50,4 68,30 68,54 C68,72 58,84 50,84 C42,84 32,72 32,54 C32,30 50,4 50,4 Z" fill="#F97316"/><path d="M50,34 C50,34 60,48 60,62 C60,72 55,76 50,76 C45,76 40,72 40,62 C40,48 50,34 50,34 Z" fill="#FBBF24"/></svg>` },
+      { name: 'Star', svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><polygon points="50,6 63,35 96,38 71,60 78,92 50,75 22,92 29,60 4,38 37,35" fill="#FBBF24" stroke="#D97706" stroke-width="2"/><polygon points="50,18 58,38 80,40 64,54 69,76 50,65 31,76 36,54 20,40 42,38" fill="#FDE68A"/></svg>` }
+    ];
+
+    const grid = document.getElementById('stickersGrid');
+    pngStickers.forEach(item => {
+      const src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(item.svg);
+      const btn = document.createElement('div');
+      btn.className = 'sticker-png-btn';
+      btn.innerHTML = `<img src="${src}" alt="${item.name}">`;
+      btn.addEventListener('click', () => addSticker(src));
+      grid.appendChild(btn);
+    });
+
+    document.getElementById('customStickerInput').addEventListener('change', function(e) {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => addSticker(ev.target.result);
+      reader.readAsDataURL(file);
+      this.value = '';
+    });
+
+    function addSticker(src) {
+      fabric.Image.fromURL(src, function(stk) {
+        if (!stk) return;
+        const size = Math.min(canvas.width, canvas.height) * 0.28;
+        const scale = size / Math.max(stk.width, stk.height);
+        stk.set({
+          scaleX: scale,
+          scaleY: scale,
+          left: canvas.width / 2,
+          top: canvas.height / 2,
+          originX: 'center',
+          originY: 'center',
+          cornerColor: '#4f46e5',
+          cornerStyle: 'circle',
+          cornerSize: 14,
+          transparentCorners: false
+        });
+        canvas.add(stk);
+        canvas.setActiveObject(stk);
+        canvas.renderAll();
+        pushState();
+        closeDrawer();
+      });
+    }
+
+    // -----------------------------------------------------------
+    // التدوير والحذف
+    // -----------------------------------------------------------
+    document.getElementById('btnRotate').addEventListener('click', () => {
+      if (!mainImage) return;
+      const oldW = canvas.width;
+      const oldH = canvas.height;
+
+      // تدوير الصورة
+      mainImage.set('angle', (mainImage.angle + 90) % 360);
+
+      // تبديل أبعاد الكانفاس لتتناسب مع التدوير
+      canvas.setDimensions({ width: oldH, height: oldW });
+      mainImage.set({ left: canvas.width / 2, top: canvas.height / 2 });
+      mainImage.setCoords();
+
+      // تدوير باقي الطبقات مع الصورة
+      const rad = fabric.util.degreesToRadians(90);
+      canvas.getObjects().forEach(obj => {
+        if (obj.isMainImage) return;
+        const pt = fabric.util.rotatePoint(
+          new fabric.Point(obj.left, obj.top),
+          new fabric.Point(oldW / 2, oldH / 2),
+          rad
+        );
+        obj.set({
+          left: (oldH / 2) + (pt.x - oldW / 2),
+          top: (oldW / 2) + (pt.y - oldH / 2),
+          angle: (obj.angle + 90) % 360
+        });
+        obj.setCoords();
+      });
+
+      canvas.renderAll();
+      pushState();
+    });
+
+    document.getElementById('btnFlipH').addEventListener('click', () => {
+      if (!mainImage) return;
+      mainImage.set('flipX', !mainImage.flipX);
+      canvas.renderAll();
+      pushState();
+    });
+
+    document.getElementById('btnFlipV').addEventListener('click', () => {
+      if (!mainImage) return;
+      mainImage.set('flipY', !mainImage.flipY);
+      canvas.renderAll();
+      pushState();
+    });
+
+    document.getElementById('btnDeleteSelected').addEventListener('click', () => {
+      const active = canvas.getActiveObject();
+      if (active && !active.isMainImage) {
+        canvas.remove(active);
+        canvas.renderAll();
+        pushState();
+      }
+    });
+
+    // -----------------------------------------------------------
+    // تصدير وحفظ الصورة بدقتها الأصلية مع ظهور كل الطبقات 100%
+    // -----------------------------------------------------------
+    const thankYouModal = document.getElementById('thankYouModal');
+    const modalSpinner = document.getElementById('modalSpinner');
+    const modalSuccessIcon = document.getElementById('modalSuccessIcon');
+    const modalSubtitle = document.getElementById('modalSubtitle');
+    const btnCloseModal = document.getElementById('btnCloseModal');
+
+    btnCloseModal.addEventListener('click', () => {
+      thankYouModal.style.display = 'none';
+    });
+
+    document.getElementById('btnSaveHQ').addEventListener('click', () => {
+      if (!mainImage || !originalImageSource) return;
+
+      // إلغاء تحديد أي عنصر لمنع ظهور مربعات التحديد على الصورة المحفوظة
+      canvas.discardActiveObject();
+      canvas.renderAll();
+
+      // إظهار نافذة الإعلان مع مؤشر التحميل فوراً
+      thankYouModal.style.display = 'flex';
+      modalSpinner.style.display = 'block';
+      modalSuccessIcon.style.display = 'none';
+      modalSubtitle.textContent = 'جاري حفظ ومعالجة صورتك بدقتها الأصلية الكاملة...';
+      btnCloseModal.style.display = 'none';
+
+      setTimeout(() => {
+        try {
+          // حساب معامل التكبير بالنسبة للدقة الأصلية الكاملة (مع حد أقصى 4096px لحماية هواتف آيفون)
+          const angle = (mainImage.angle || 0) % 360;
+          const isRotated90 = (angle === 90 || angle === 270);
+          const fullW = isRotated90 ? originalHeight : originalWidth;
+          const fullH = isRotated90 ? originalWidth : originalHeight;
+
+          const maxDim = Math.max(fullW, fullH);
+          let safeScale = 1;
+          if (maxDim > 4096) {
+            safeScale = 4096 / maxDim;
+          }
+          const targetW = fullW * safeScale;
+
+          // معامل التكبير المباشر للكانفاس لضمان حفظ كل ما تراه عيناك
+          const multiplier = targetW / canvas.width;
+
+          // تبديل مؤقت للصورة الأساسية بالأصل فائق الجودة
+          const prevElement = mainImage.getElement();
+          const prevScaleX = mainImage.scaleX;
+          const prevScaleY = mainImage.scaleY;
+
+          mainImage.setElement(originalImageSource);
+          mainImage.set({
+            scaleX: (canvas.width / (isRotated90 ? originalHeight : originalWidth)),
+            scaleY: (canvas.height / (isRotated90 ? originalWidth : originalHeight))
+          });
+          applyAllFiltersToImage(mainImage);
+          canvas.renderAll();
+
+          // استخراج الصورة النهائية التي تحتوي على الصورة المضافة والملصقات والنصوص بكل دقة
+          const highResDataURL = canvas.toDataURL({
+            format: 'png',
+            quality: 1.0,
+            multiplier: multiplier
+          });
+
+          // استعادة نسخة المعاينة الخفيفة للحفاظ على سلاسة التطبيق
+          mainImage.setElement(prevElement);
+          mainImage.set({
+            scaleX: prevScaleX,
+            scaleY: prevScaleY
+          });
+          applyAllFiltersToImage(mainImage);
+          canvas.renderAll();
+
+          // بدء تحميل الصورة المحفوظة
+          const downloadLink = document.createElement('a');
+          downloadLink.download = `Alezidi-Photo-${Date.now()}.png`;
+          downloadLink.href = highResDataURL;
+          downloadLink.click();
+
+          // تحديث النافذة لعرض إعلان النجاح الكامل
+          modalSpinner.style.display = 'none';
+          modalSuccessIcon.style.display = 'block';
+          modalSubtitle.textContent = 'تم حفظ وتنزيل الصورة بنجاح وتضمين كافة الطبقات!';
+          btnCloseModal.style.display = 'inline-flex';
+
+        } catch (err) {
+          alert('حدث خطأ أثناء حفظ الصورة: ' + err.message);
+          thankYouModal.style.display = 'none';
+        }
+      }, 70);
+    });
+  </script>
+</body>
+</html>
